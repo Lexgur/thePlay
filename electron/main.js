@@ -6,8 +6,9 @@ const os = require('os');
 const path = require('path');
 
 app.setName('theplay');
+app.commandLine.appendSwitch('no-sandbox');
 
-const root = path.resolve(__dirname, '..');
+const root = app.isPackaged ? process.resourcesPath : path.resolve(__dirname, '..');
 let php = null;
 let scriptWindow = null;
 let displayWindow = null;

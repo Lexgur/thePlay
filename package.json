@@ -6,11 +6,30 @@
   "main": "electron/main.js",
   "scripts": {
     "start": "electron --no-sandbox .",
-    "css": "tailwindcss -i ui/input.css -o ui/app.css --minify"
+    "css": "tailwindcss -i ui/input.css -o ui/app.css --minify",
+    "pack": "npm run css && electron-builder --linux AppImage"
   },
   "devDependencies": {
     "electron": "^45.4.1",
     "@tailwindcss/cli": "^4.1.17",
+    "electron-builder": "^26.0.12",
     "tailwindcss": "^4.1.17"
+  },
+  "build": {
+    "appId": "com.lexgur.theplay",
+    "productName": "thePlay",
+    "files": [
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      "php",
+      "ui",
+      "vendor"
+    ],
+    "linux": {
+      "target": "AppImage",
+      "category": "Audio"
+    }
   }
 }
