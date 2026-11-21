@@ -35,6 +35,20 @@ if ($uri === '/app.css') {
 
     return;
 }
+if ($uri === '/display') {
+    header('Content-Type: text/html; charset=utf-8');
+    header('Cache-Control: no-store');
+    readfile($ui . '/display.html');
+
+    return;
+}
+if ($uri === '/display.js') {
+    header('Content-Type: text/javascript; charset=utf-8');
+    header('Cache-Control: no-store');
+    readfile($ui . '/display.js');
+
+    return;
+}
 
 $dataDir = getenv('THEPLAY_DATA');
 if (!is_string($dataDir) || $dataDir === '') {
@@ -61,6 +75,9 @@ try {
         }
 
         $key = (string) ($body['key'] ?? '');
+        if ($key === ' ') {
+            throw new InvalidArgumentException('Space stops all sounds, so it cannot be a group key');
+        }
         if ($key === '' || strlen($key) > 32 || preg_match('/[\x00-\x1F]/', $key) === 1) {
             throw new InvalidArgumentException('Press a key for this sound');
         }
@@ -107,7 +124,8 @@ try {
         ];
         $projectStore->assertCue($projectId, $cue);
         $cue['clip'] = (new Clips($dataDir))->ensure($youtubeUrl, $startSec, $endSec);
-        respond($projectStore->saveCue($projectId, $cue));
+        $projectStore->saveCue($projectId, $cue);
+        respond($projectStore->saveGroup($projectId, visualFor($body, $dataDir, $key)));
 
         return;
     }
@@ -119,6 +137,18 @@ try {
             (string) ($body['id'] ?? '')
         );
         respond($project);
+
+        return;
+    }
+
+    if (preg_match('#^/visual/([A-Za-z0-9_-]+\.(?:mp4|jpg|png|gif|webp))$#', $uri, $match) === 1) {
+        sendFile($dataDir . '/visuals', $match[1], [
+            'mp4' => 'video/mp4',
+            'jpg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+        ]);
 
         return;
     }
@@ -148,6 +178,110 @@ try {
     respond(['error' => $exception->getMessage()], 400);
 } catch (Throwable $exception) {
     respond(['error' => $exception->getMessage()], 500);
+}
+
+function visualFor(array $body, string $dataDir, string $key): array
+{
+    $type = (string) ($body['visualType'] ?? '');
+    $group = [
+        'key' => $key,
+        'visualType' => '',
+        'visualFile' => '',
+        'visualLoop' => false,
+        'visualUrl' => '',
+        'visualStart' => '',
+        'visualEnd' => '',
+    ];
+    if ($type === '') {
+        return $group;
+    }
+    if ($type === 'image') {
+        $path = (string) ($body['imagePath'] ?? '');
+        $existing = (string) ($body['visualFile'] ?? '');
+        if ($path !== '') {
+            $group['visualFile'] = storeImage($dataDir, $path);
+        } elseif (preg_match('/^[a-f0-9]{64}\.(jpg|png|gif|webp)$/', $existing) === 1) {
+            $group['visualFile'] = $existing;
+        } else {
+            throw new InvalidArgumentException('Choose an image');
+        }
+        $group['visualType'] = 'image';
+        $group['visualLoop'] = true;
+
+        return $group;
+    }
+    if ($type !== 'video') {
+        throw new InvalidArgumentException('Unknown picture type');
+    }
+
+    $url = trim((string) ($body['visualUrl'] ?? ''));
+    $startLabel = trim((string) ($body['visualStart'] ?? ''));
+    $endLabel = trim((string) ($body['visualEnd'] ?? ''));
+    $start = null;
+    $end = null;
+    if ($startLabel !== '' || $endLabel !== '') {
+        if ($startLabel === '' || $endLabel === '') {
+            throw new InvalidArgumentException('Set both video times, or leave both empty to loop');
+        }
+        $start = Time::seconds($startLabel);
+        $end = Time::seconds($endLabel);
+        Time::assertRange($start, $end);
+    }
+    $video = (new Clips($dataDir))->ensureVideo($url, $start, $end);
+    $group['visualType'] = 'video';
+    $group['visualFile'] = $video['file'];
+    $group['visualLoop'] = $video['loop'];
+    $group['visualUrl'] = $url;
+    $group['visualStart'] = $startLabel;
+    $group['visualEnd'] = $endLabel;
+
+    return $group;
+}
+
+function storeImage(string $dataDir, string $path): string
+{
+    if (!is_file($path) || !is_readable($path)) {
+        throw new InvalidArgumentException('Image not found');
+    }
+    $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+    if ($extension === 'jpeg') {
+        $extension = 'jpg';
+    }
+    if (!in_array($extension, ['jpg', 'png', 'gif', 'webp'], true)) {
+        throw new InvalidArgumentException('Use a jpg, png, gif, or webp image');
+    }
+    $hash = hash_file('sha256', $path);
+    if ($hash === false) {
+        throw new RuntimeException('Cannot read that image');
+    }
+    $name = $hash . '.' . $extension;
+    $dir = $dataDir . '/visuals';
+    if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
+        throw new RuntimeException('Cannot store that image');
+    }
+    if (!is_file($dir . '/' . $name) && !copy($path, $dir . '/' . $name)) {
+        throw new RuntimeException('Cannot store that image');
+    }
+
+    return $name;
+}
+
+function sendFile(string $directory, string $name, array $types): void
+{
+    $root = realpath($directory);
+    $file = realpath($directory . '/' . $name);
+    if ($root === false || $file === false || !str_starts_with($file, $root . DIRECTORY_SEPARATOR)) {
+        http_response_code(404);
+        header('Content-Type: text/plain; charset=utf-8');
+        echo 'Not found';
+
+        return;
+    }
+    $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+    header('Content-Type: ' . ($types[$extension] ?? 'application/octet-stream'));
+    header('Content-Length: ' . (string) filesize($file));
+    header('Cache-Control: no-store');
+    readfile($file);
 }
 
 function requestBody(): array

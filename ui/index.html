@@ -6,17 +6,12 @@
   <link rel="stylesheet" href="/app.css">
 </head>
 <body>
-  <div id="top">
-    <header>
-      <strong>thePlay</strong>
-      <button type="button" id="open">Open</button>
-      <span id="file-name"></span>
-      <button type="button" id="prev">Back</button>
-      <strong id="slide-title"></strong>
-      <button type="button" id="next">Next</button>
-    </header>
-    <nav id="scenes"></nav>
-  </div>
+  <header>
+    <strong>thePlay</strong>
+    <button type="button" id="open">Open</button>
+    <button type="button" id="show-display">Display</button>
+    <span id="file-name"></span>
+  </header>
   <p id="status" role="status"></p>
   <main>
     <article id="doc">
@@ -31,6 +26,7 @@
           <strong id="key-label">none</strong>
         </span>
       </label>
+      <p id="group-note" class="hint"></p>
       <label>YouTube URL
         <input id="url" type="url" placeholder="https://www.youtube.com/watch?v=...">
       </label>
@@ -49,6 +45,29 @@
       <label>Volume
         <input id="volume" type="number" min="0" max="100" step="1" value="100">
       </label>
+      <label>Group picture
+        <select id="visual-type">
+          <option value="">Sound only</option>
+          <option value="image">Image</option>
+          <option value="video">YouTube video</option>
+        </select>
+      </label>
+      <div id="visual-image" hidden>
+        <button type="button" id="pick-image">Choose image</button>
+        <span id="image-name"></span>
+      </div>
+      <div id="visual-video" hidden>
+        <label>Video URL
+          <input id="visual-url" type="url" placeholder="https://www.youtube.com/watch?v=...">
+        </label>
+        <label>From
+          <input id="visual-start" inputmode="numeric" placeholder="optional" autocomplete="off">
+        </label>
+        <label>To
+          <input id="visual-end" inputmode="numeric" placeholder="optional" autocomplete="off">
+        </label>
+        <p class="hint">Leave both empty to loop until the next group.</p>
+      </div>
       <div class="row">
         <button type="button" id="save">Save</button>
         <button type="button" id="add" hidden>Add another</button>

@@ -88,6 +88,80 @@ final class Clips
         return $name;
     }
 
+    public function ensureVideo(string $youtubeUrl, ?int $start, ?int $end): array
+    {
+        $videoId = self::videoId($youtubeUrl);
+        $loop = $start === null || $end === null;
+        if (!$loop) {
+            Time::assertRange((int) $start, (int) $end);
+        }
+        $source = $this->videoSource($videoId);
+        if ($loop) {
+            return ['file' => $videoId . '_full.mp4', 'loop' => true];
+        }
+
+        $name = $videoId . '_' . $start . '_' . $end . '.mp4';
+        $destination = $this->dir . '/visuals/' . $name;
+        if (is_file($destination) && filesize($destination) > 1000) {
+            return ['file' => $name, 'loop' => false];
+        }
+        $duration = $this->duration($source);
+        if ($start >= $duration) {
+            throw new InvalidArgumentException('Start time is past the end of the video');
+        }
+        if ($end > $duration + 0.25) {
+            throw new InvalidArgumentException('End time is past the end of the video');
+        }
+        $this->ensureVisualDir();
+        $this->run([
+            $this->bin('ffmpeg'),
+            '-y',
+            '-ss',
+            (string) $start,
+            '-to',
+            (string) $end,
+            '-i',
+            $source,
+            '-c',
+            'copy',
+            $destination,
+        ]);
+        if (!is_file($destination) || filesize($destination) < 1000) {
+            throw new RuntimeException('Could not cut that video');
+        }
+
+        return ['file' => $name, 'loop' => false];
+    }
+
+    private function videoSource(string $videoId): string
+    {
+        $destination = $this->dir . '/visuals/' . $videoId . '_full.mp4';
+        if (is_file($destination) && filesize($destination) > 1000) {
+            return $destination;
+        }
+        $this->ensureVisualDir();
+        // shortcut: caps the download at 720p; raise the format if a projector looks soft.
+        $this->run([
+            $this->bin('yt-dlp'),
+            '--js-runtimes',
+            'node:' . $this->bin('node'),
+            '-f',
+            'bv*[height<=720]+ba/b[height<=720]/b',
+            '--merge-output-format',
+            'mp4',
+            '--no-playlist',
+            '--no-progress',
+            '-o',
+            $destination,
+            'https://www.youtube.com/watch?v=' . $videoId,
+        ]);
+        if (!is_file($destination) || filesize($destination) < 1000) {
+            throw new RuntimeException('Could not download that YouTube video');
+        }
+
+        return $destination;
+    }
+
     private function source(string $videoId): string
     {
         $destination = $this->dir . '/sources/' . $videoId . '.m4a';
@@ -143,6 +217,14 @@ final class Clips
         $dir = $this->dir . '/sources';
         if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
             throw new RuntimeException('Cannot create audio cache');
+        }
+    }
+
+    private function ensureVisualDir(): void
+    {
+        $dir = $this->dir . '/visuals';
+        if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
+            throw new RuntimeException('Cannot create video cache');
         }
     }
 

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>thePlay display</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #000; color: #fff; font: 16px sans-serif; }
+    video, img { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
+    #controls { position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; padding: 0.75rem 1rem; background: rgba(0, 0, 0, 0.72); }
+    body.idle #controls { opacity: 0; }
+    button { font: inherit; padding: 0.35rem 0.7rem; }
+  </style>
+</head>
+<body>
+  <video id="video" hidden></video>
+  <img id="picture" alt="" hidden>
+  <div id="controls">
+    <span>Drag this window onto the projector.</span>
+    <span id="screens"></span>
+    <button type="button" id="full">Fullscreen</button>
+  </div>
+  <script src="/display.js"></script>
+</body>
+</html>

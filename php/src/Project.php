@@ -37,6 +37,7 @@ final class Project
             'path' => $path,
             'paragraphs' => DocumentText::paragraphs($path),
             'cues' => [],
+            'groups' => [],
         ];
         $this->write($data);
 
@@ -85,16 +86,58 @@ public function assertCue(string $projectId, array $cue): void
         return $data;
     }
 
+    public function saveGroup(string $projectId, array $group): array
+    {
+        $data = $this->requireProject($projectId);
+        $groups = $data['groups'] ?? [];
+        $replaced = false;
+        foreach ($groups as $index => $existing) {
+            if ($existing['key'] === $group['key']) {
+                $groups[$index] = $group;
+                $replaced = true;
+                break;
+            }
+        }
+        if (!$replaced) {
+            $groups[] = $group;
+        }
+        $data['groups'] = array_values($groups);
+        $this->write($data);
+
+        return $data;
+    }
+
     public function deleteCue(string $projectId, string $cueId): array
     {
         $data = $this->requireProject($projectId);
+        $key = null;
         $kept = [];
         foreach ($data['cues'] as $existing) {
-            if ($existing['id'] !== $cueId) {
-                $kept[] = $existing;
+            if ($existing['id'] === $cueId) {
+                $key = $existing['key'];
+                continue;
             }
+            $kept[] = $existing;
         }
         $data['cues'] = $kept;
+        if ($key !== null) {
+            $stillUsed = false;
+            foreach ($kept as $existing) {
+                if ($existing['key'] === $key) {
+                    $stillUsed = true;
+                    break;
+                }
+            }
+            if (!$stillUsed) {
+                $groups = [];
+                foreach ($data['groups'] ?? [] as $group) {
+                    if ($group['key'] !== $key) {
+                        $groups[] = $group;
+                    }
+                }
+                $data['groups'] = $groups;
+            }
+        }
         $this->write($data);
 
         return $data;
@@ -120,15 +163,6 @@ public function assertCue(string $projectId, array $cue): void
         $length = self::utf16Length($paragraph['text']);
         if ($start < 0 || $end > $length || $start >= $end) {
             throw new InvalidArgumentException('Select some text in one paragraph');
-        }
-
-        foreach ($data['cues'] as $existing) {
-            if ($existing['id'] === $cue['id']) {
-                continue;
-            }
-            if ($existing['key'] === $cue['key']) {
-                throw new InvalidArgumentException('That key is already used');
-            }
         }
 
         return [$data, $start, $end];

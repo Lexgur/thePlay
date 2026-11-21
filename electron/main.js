@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, screen } = require('electron');
 const { spawn } = require('child_process');
 const http = require('http');
 const net = require('net');
@@ -9,6 +9,17 @@ app.setName('theplay');
 
 const root = path.resolve(__dirname, '..');
 let php = null;
+let scriptWindow = null;
+let displayWindow = null;
+
+function webPreferences() {
+  return {
+    preload: path.join(__dirname, 'preload.js'),
+    contextIsolation: true,
+    nodeIntegration: false,
+    sandbox: true,
+  };
+}
 
 function freePort() {
   return new Promise((resolve, reject) => {
@@ -73,22 +84,24 @@ async function createWindow() {
     return;
   }
 
-  const window = new BrowserWindow({
+  scriptWindow = new BrowserWindow({
     width: 1100,
     height: 800,
     show: false,
     backgroundColor: '#faf7f2',
     title: 'thePlay',
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-    },
+    webPreferences: webPreferences(),
+  });
+  displayWindow = new BrowserWindow({
+    width: 960,
+    height: 540,
+    backgroundColor: '#000000',
+    title: 'thePlay display',
+    webPreferences: webPreferences(),
   });
 
   ipcMain.handle('open-file', async () => {
-    const chosen = await dialog.showOpenDialog(window, {
+    const chosen = await dialog.showOpenDialog(scriptWindow, {
       title: 'Open a script',
       defaultPath: path.join(home, 'Downloads'),
       filters: [{ name: 'Script', extensions: ['docx', 'pdf'] }],
@@ -99,9 +112,55 @@ async function createWindow() {
     }
     return chosen.filePaths[0];
   });
+  ipcMain.handle('open-image', async () => {
+    const chosen = await dialog.showOpenDialog(scriptWindow, {
+      title: 'Choose an image',
+      filters: [{ name: 'Image', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp'] }],
+      properties: ['openFile'],
+    });
+    if (chosen.canceled || chosen.filePaths.length === 0) {
+      return null;
+    }
+    return chosen.filePaths[0];
+  });
+  ipcMain.handle('focus-display', () => {
+    if (!displayWindow || displayWindow.isDestroyed()) {
+      return;
+    }
+    displayWindow.show();
+    displayWindow.focus();
+  });
+  ipcMain.handle('fullscreen-display', () => {
+    if (displayWindow && !displayWindow.isDestroyed()) {
+      displayWindow.setFullScreen(true);
+    }
+  });
+  ipcMain.handle('list-screens', () => {
+    return screen.getAllDisplays().map((display, index) => ({
+      id: display.id,
+      label: 'Screen ' + (index + 1) + ' (' + display.size.width + '×' + display.size.height + ')',
+    }));
+  });
+  ipcMain.handle('send-to-screen', (_event, id) => {
+    const display = screen.getAllDisplays().find((item) => item.id === Number(id));
+    if (!display || !displayWindow || displayWindow.isDestroyed()) {
+      return;
+    }
+    if (displayWindow.isFullScreen()) {
+      displayWindow.setFullScreen(false);
+    }
+    displayWindow.setBounds(display.bounds);
+    displayWindow.setFullScreen(true);
+  });
 
-  window.once('ready-to-show', () => window.show());
-  await window.loadURL(`http://127.0.0.1:${port}/`);
+  scriptWindow.on('closed', () => {
+    if (displayWindow && !displayWindow.isDestroyed()) {
+      displayWindow.close();
+    }
+  });
+  scriptWindow.once('ready-to-show', () => scriptWindow.show());
+  await scriptWindow.loadURL(`http://127.0.0.1:${port}/`);
+  await displayWindow.loadURL(`http://127.0.0.1:${port}/display`);
 }
 
 app.whenReady().then(createWindow).catch((error) => {
