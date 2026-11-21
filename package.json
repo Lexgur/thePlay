@@ -5,7 +5,7 @@
   "description": "Desktop script soundboard",
   "main": "electron/main.js",
   "scripts": {
-    "start": "electron .",
+    "start": "electron --no-sandbox .",
     "css": "tailwindcss -i ui/input.css -o ui/app.css --minify"
   },
   "devDependencies": {
