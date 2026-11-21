@@ -19,6 +19,7 @@ function show(visual) {
   picture.hidden = true;
   picture.removeAttribute('src');
   video.hidden = false;
+  video.muted = visual.muted !== false;
   video.loop = !!visual.loop;
   video.src = visual.src;
   video.play();

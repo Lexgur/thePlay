@@ -71,7 +71,12 @@
           <span class="relative h-6 w-11 shrink-0 rounded-full bg-stone-300 transition-colors peer-checked:bg-stone-900 peer-focus-visible:ring-2 peer-focus-visible:ring-stone-900 peer-focus-visible:ring-offset-2 after:absolute after:left-0.5 after:top-0.5 after:size-5 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5"></span>
           Loop
         </label>
-        <p class="mb-3 text-xs leading-snug text-stone-500">Repeats that part until another group shows a picture or video. Leave From and To empty for the whole video.</p>
+        <label class="mb-3 flex cursor-pointer items-center gap-3">
+          <input id="visual-mute" type="checkbox" class="peer sr-only" checked>
+          <span class="relative h-6 w-11 shrink-0 rounded-full bg-stone-300 transition-colors peer-checked:bg-stone-900 peer-focus-visible:ring-2 peer-focus-visible:ring-stone-900 peer-focus-visible:ring-offset-2 after:absolute after:left-0.5 after:top-0.5 after:size-5 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5"></span>
+          Mute video
+        </label>
+        <p class="mb-3 text-xs leading-snug text-stone-500">Mute is on so you hear the sounds on this key. Turn it off to also hear the video. Loop repeats until the next picture or video. Leave From and To empty for the whole video.</p>
       </div>
       <div class="flex flex-wrap gap-2">
         <button type="button" id="save" class="rounded-md bg-stone-900 px-3 py-1.5 text-white hover:bg-stone-700">Save</button>
@@ -80,6 +85,12 @@
       </div>
     </aside>
   </main>
+  <div id="loading" hidden class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 font-sans">
+    <div class="flex items-center gap-3 rounded-md bg-white px-5 py-4 text-stone-900 shadow-lg">
+      <span class="size-5 animate-spin rounded-full border-2 border-stone-300 border-t-stone-900"></span>
+      <span id="loading-text" class="text-sm">Downloading from YouTube…</span>
+    </div>
+  </div>
   <script src="/app.js"></script>
 </body>
 </html>

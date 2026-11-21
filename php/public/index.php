@@ -188,6 +188,7 @@ function visualFor(array $body, string $dataDir, string $key): array
         'visualType' => '',
         'visualFile' => '',
         'visualLoop' => false,
+        'visualMuted' => false,
         'visualUrl' => '',
         'visualStart' => '',
         'visualEnd' => '',
@@ -230,6 +231,7 @@ function visualFor(array $body, string $dataDir, string $key): array
     $group['visualType'] = 'video';
     $group['visualFile'] = (new Clips($dataDir))->ensureVideo($url, $start, $end);
     $group['visualLoop'] = filter_var($body['visualLoop'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    $group['visualMuted'] = !array_key_exists('visualMuted', $body) || filter_var($body['visualMuted'], FILTER_VALIDATE_BOOLEAN);
     $group['visualUrl'] = $url;
     $group['visualStart'] = $startLabel;
     $group['visualEnd'] = $endLabel;

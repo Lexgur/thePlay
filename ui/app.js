@@ -1,6 +1,7 @@
 let project = null;
 let draft = null;
 let arming = false;
+let saving = false;
 let audioCtx = null;
 const buffers = new Map();
 const active = new Map();
@@ -29,6 +30,9 @@ const visualUrl = document.getElementById('visual-url');
 const visualStart = document.getElementById('visual-start');
 const visualEnd = document.getElementById('visual-end');
 const visualLoop = document.getElementById('visual-loop');
+const visualMute = document.getElementById('visual-mute');
+const loading = document.getElementById('loading');
+const loadingText = document.getElementById('loading-text');
 const imageName = document.getElementById('image-name');
 const visualChannel = new BroadcastChannel('theplay-visual');
 
@@ -83,7 +87,7 @@ addButton.addEventListener('click', addAnother);
 removeButton.addEventListener('click', removeCue);
 
 doc.addEventListener('mouseup', () => {
-  if (!project) {
+  if (saving || !project) {
     return;
   }
   const selection = window.getSelection();
@@ -157,7 +161,11 @@ window.addEventListener('keydown', (event) => {
     arming = false;
     if (draft) {
       draft.key = event.key;
-      fillGroup();
+      if (visualFieldsBlank()) {
+        fillGroup();
+      } else {
+        updateGroupNote();
+      }
     }
     keyLabel.textContent = labelFor(event.key);
     return;
@@ -214,6 +222,10 @@ function showDraft(cue) {
   setStatus('');
 }
 
+function visualFieldsBlank() {
+  return visualType.value === '' && visualUrl.value.trim() === '' && !(draft && draft.imagePath);
+}
+
 function fillGroup() {
   const group = (project.groups || []).find((item) => item.key === draft.key) || null;
   visualType.value = group && group.visualType ? group.visualType : '';
@@ -221,8 +233,14 @@ function fillGroup() {
   visualStart.value = group ? (group.visualStart || '') : '';
   visualEnd.value = group ? (group.visualEnd || '') : '';
   visualLoop.checked = group && group.visualType === 'video' ? !!group.visualLoop : true;
+  visualMute.checked = group && group.visualType === 'video' ? group.visualMuted !== false : true;
   draft.visualFile = group ? (group.visualFile || '') : '';
   imageName.textContent = visualType.value === 'image' && draft.visualFile ? 'Saved image' : '';
+  updateGroupNote();
+  toggleVisual();
+}
+
+function updateGroupNote() {
   const count = project.cues.filter((cue) => cue.key && cue.key === draft.key).length;
   if (!draft.key) {
     groupNote.textContent = 'The key is the group. Every sound on it plays together.';
@@ -231,7 +249,6 @@ function fillGroup() {
   } else {
     groupNote.textContent = 'Group ' + labelFor(draft.key) + ' plays ' + count + ' sound' + (count === 1 ? '' : 's') + ' and this picture together.';
   }
-  toggleVisual();
 }
 
 function toggleVisual() {
@@ -297,9 +314,13 @@ async function saveCue() {
     setStatus('Space stops all sounds, so it cannot be a group key.');
     return;
   }
+  const downloading = visualType.value === 'video' || urlInput.value.trim() !== '';
+  saving = true;
   saveButton.disabled = true;
-  setStatus(visualType.value === 'video' ? 'Downloading the group…' : 'Saving the group…');
-  const data = await postJson('/api/cue', {
+  showLoading(downloading ? 'Downloading from YouTube…' : 'Saving…');
+  let data;
+  try {
+    data = await postJson('/api/cue', {
     projectId: project.id,
     id: draft.id,
     paragraphId: draft.paragraphId,
@@ -319,8 +340,13 @@ async function saveCue() {
     visualStart: visualStart.value.trim(),
     visualEnd: visualEnd.value.trim(),
     visualLoop: visualLoop.checked,
+    visualMuted: visualMute.checked,
   });
-  saveButton.disabled = false;
+  } finally {
+    saving = false;
+    saveButton.disabled = false;
+    hideLoading();
+  }
   if (!data) {
     return;
   }
@@ -337,9 +363,21 @@ async function saveCue() {
     && item.endOffset === match.endOffset
     && item.key === match.key);
   if (saved) {
-    showCue(saved);
+    draft.id = saved.id;
+    removeButton.hidden = false;
+    renderSoundList();
   }
-  setStatus('Saved. Press ' + labelFor(saved ? saved.key : draft.key) + ' to play the group.');
+  editor.hidden = false;
+  setStatus('Saved. Press ' + labelFor(draft.key) + ' to play the group.');
+}
+
+function showLoading(message) {
+  loadingText.textContent = message;
+  loading.hidden = false;
+}
+
+function hideLoading() {
+  loading.hidden = true;
 }
 
 async function removeCue() {
@@ -502,6 +540,7 @@ function playGroup(cues) {
     kind: group.visualType,
     src: '/visual/' + group.visualFile,
     loop: !!group.visualLoop,
+    muted: group.visualType === 'video' ? group.visualMuted !== false : true,
   };
   localStorage.setItem('theplay-visual', JSON.stringify(payload));
   visualChannel.postMessage(payload);
