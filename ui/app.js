@@ -16,7 +16,9 @@ const fadeInput = document.getElementById('fade');
 const fadeOutInput = document.getElementById('fade-out');
 const volumeInput = document.getElementById('volume');
 const saveButton = document.getElementById('save');
+const addButton = document.getElementById('add');
 const removeButton = document.getElementById('remove');
+const soundList = document.getElementById('sound-list');
 const status = document.getElementById('status');
 const fileName = document.getElementById('file-name');
 
@@ -48,6 +50,7 @@ document.getElementById('set-key').addEventListener('click', () => {
 });
 
 saveButton.addEventListener('click', saveCue);
+addButton.addEventListener('click', addAnother);
 removeButton.addEventListener('click', removeCue);
 
 doc.addEventListener('mouseup', () => {
@@ -65,7 +68,8 @@ doc.addEventListener('mouseup', () => {
     if (!mark) {
       return;
     }
-    const cue = project.cues.find((item) => item.id === mark.dataset.cue);
+    const cueId = (mark.dataset.ids || '').split(',')[0];
+    const cue = project.cues.find((item) => item.id === cueId);
     if (cue) {
       showCue(cue);
     }
@@ -165,7 +169,53 @@ function showDraft(cue) {
   volumeInput.value = String(draft.volume);
   removeButton.hidden = !draft.id;
   editor.hidden = false;
+  renderSoundList();
   setStatus('');
+}
+
+function soundsOnDraft() {
+  if (!project || !draft) {
+    return [];
+  }
+  return project.cues.filter((cue) => cue.paragraphId === draft.paragraphId
+    && cue.startOffset < draft.endOffset
+    && draft.startOffset < cue.endOffset);
+}
+
+function renderSoundList() {
+  soundList.replaceChildren();
+  const sounds = soundsOnDraft();
+  addButton.hidden = sounds.length === 0;
+  for (const cue of sounds) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = labelFor(cue.key);
+    if (draft && cue.id === draft.id) {
+      button.disabled = true;
+    }
+    button.addEventListener('click', () => showCue(cue));
+    soundList.appendChild(button);
+  }
+}
+
+function addAnother() {
+  if (!draft) {
+    return;
+  }
+  showDraft({
+    id: null,
+    paragraphId: draft.paragraphId,
+    startOffset: draft.startOffset,
+    endOffset: draft.endOffset,
+    key: '',
+    youtubeUrl: '',
+    start: '',
+    end: '',
+    fadeIn: 2,
+    fadeOut: 2,
+    volume: 100,
+  });
+  setStatus('Set the next sound, then save.');
 }
 
 async function saveCue() {
@@ -237,20 +287,27 @@ function render() {
   for (const paragraph of project.paragraphs) {
     const element = document.createElement('p');
     element.dataset.id = paragraph.id;
-    const cues = project.cues
-      .filter((cue) => cue.paragraphId === paragraph.id)
-      .sort((a, b) => a.startOffset - b.startOffset);
-    let cursor = 0;
+    const cues = project.cues.filter((cue) => cue.paragraphId === paragraph.id);
+    const points = [0, paragraph.text.length];
     for (const cue of cues) {
-      appendText(element, paragraph.text.slice(cursor, cue.startOffset));
-      const mark = document.createElement('mark');
-      mark.dataset.cue = cue.id;
-      mark.dataset.key = labelFor(cue.key);
-      mark.textContent = paragraph.text.slice(cue.startOffset, cue.endOffset);
-      element.appendChild(mark);
-      cursor = cue.endOffset;
+      points.push(cue.startOffset, cue.endOffset);
     }
-    appendText(element, paragraph.text.slice(cursor));
+    const stops = [...new Set(points)].filter((point) => point >= 0 && point <= paragraph.text.length).sort((a, b) => a - b);
+    for (let index = 0; index < stops.length - 1; index += 1) {
+      const start = stops[index];
+      const end = stops[index + 1];
+      const text = paragraph.text.slice(start, end);
+      const covering = cues.filter((cue) => cue.startOffset <= start && cue.endOffset >= end);
+      if (covering.length === 0) {
+        appendText(element, text);
+        continue;
+      }
+      const mark = document.createElement('mark');
+      mark.dataset.ids = covering.map((cue) => cue.id).join(',');
+      mark.dataset.key = covering.map((cue) => labelFor(cue.key)).join(' ');
+      mark.textContent = text;
+      element.appendChild(mark);
+    }
     doc.appendChild(element);
   }
 }

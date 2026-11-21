@@ -129,12 +129,6 @@ public function assertCue(string $projectId, array $cue): void
             if ($existing['key'] === $cue['key']) {
                 throw new InvalidArgumentException('That key is already used');
             }
-            if ($existing['paragraphId'] !== $cue['paragraphId']) {
-                continue;
-            }
-            if ($start < $existing['endOffset'] && $existing['startOffset'] < $end) {
-                throw new InvalidArgumentException('That text already has a sound');
-            }
         }
 
         return [$data, $start, $end];
