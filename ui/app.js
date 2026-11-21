@@ -77,6 +77,11 @@ document.getElementById('pick-image').addEventListener('click', async () => {
   imageName.textContent = imagePath.split(/[/\\]/).pop();
 });
 
+document.getElementById('close-editor').addEventListener('click', () => {
+  arming = false;
+  editor.hidden = true;
+});
+
 document.getElementById('set-key').addEventListener('click', () => {
   arming = true;
   keyLabel.textContent = 'Press a key…';
