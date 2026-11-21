@@ -13,6 +13,7 @@ const urlInput = document.getElementById('url');
 const startInput = document.getElementById('start');
 const endInput = document.getElementById('end');
 const fadeInput = document.getElementById('fade');
+const fadeOutInput = document.getElementById('fade-out');
 const volumeInput = document.getElementById('volume');
 const saveButton = document.getElementById('save');
 const removeButton = document.getElementById('remove');
@@ -96,6 +97,7 @@ doc.addEventListener('mouseup', () => {
     start: '',
     end: '',
     fadeIn: 2,
+    fadeOut: 2,
     volume: 100,
   });
 });
@@ -149,6 +151,7 @@ function showDraft(cue) {
     start: cue.start || '',
     end: cue.end || '',
     fadeIn: cue.fadeIn ?? 2,
+    fadeOut: cue.fadeOut ?? cue.fadeIn ?? 2,
     volume: cue.volume ?? 100,
   };
   const paragraph = project.paragraphs.find((item) => item.id === draft.paragraphId);
@@ -158,6 +161,7 @@ function showDraft(cue) {
   startInput.value = draft.start;
   endInput.value = draft.end;
   fadeInput.value = String(draft.fadeIn);
+  fadeOutInput.value = String(draft.fadeOut);
   volumeInput.value = String(draft.volume);
   removeButton.hidden = !draft.id;
   editor.hidden = false;
@@ -185,6 +189,7 @@ async function saveCue() {
     start: startInput.value.trim(),
     end: endInput.value.trim(),
     fadeIn: Number(fadeInput.value),
+    fadeOut: Number(fadeOutInput.value),
     volume: Number(volumeInput.value),
   });
   saveButton.disabled = false;
@@ -301,13 +306,19 @@ async function play(cue) {
   source.connect(gain);
   gain.connect(ctx.destination);
   const now = ctx.currentTime;
-  const fade = Math.max(0, Number(cue.fadeIn) || 0);
+  const duration = buffer.duration;
+  const fadeIn = Math.min(Math.max(0, Number(cue.fadeIn) || 0), duration);
+  const fadeOut = Math.min(Math.max(0, Number(cue.fadeOut ?? cue.fadeIn) || 0), Math.max(0, duration - fadeIn));
   const peak = Math.max(0, Math.min(1, (Number(cue.volume) || 0) / 100));
   gain.gain.setValueAtTime(0, now);
-  if (fade === 0) {
+  if (fadeIn === 0) {
     gain.gain.setValueAtTime(peak, now);
   } else {
-    gain.gain.linearRampToValueAtTime(peak, now + fade);
+    gain.gain.linearRampToValueAtTime(peak, now + fadeIn);
+  }
+  if (fadeOut > 0) {
+    gain.gain.setValueAtTime(peak, now + duration - fadeOut);
+    gain.gain.linearRampToValueAtTime(0, now + duration);
   }
   source.start(now);
   source.stop(now + buffer.duration);

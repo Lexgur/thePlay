@@ -68,9 +68,13 @@ try {
             throw new InvalidArgumentException('Set a fade-in and a volume');
         }
         $fadeIn = (float) $body['fadeIn'];
+        $fadeOut = isset($body['fadeOut']) && is_numeric($body['fadeOut']) ? (float) $body['fadeOut'] : $fadeIn;
         $volume = (int) $body['volume'];
         if ($fadeIn < 0 || $fadeIn > 120) {
             throw new InvalidArgumentException('Fade-in must be between 0 and 120 seconds');
+        }
+        if ($fadeOut < 0 || $fadeOut > 120) {
+            throw new InvalidArgumentException('Fade-out must be between 0 and 120 seconds');
         }
         if ($volume < 0 || $volume > 100) {
             throw new InvalidArgumentException('Volume must be between 0 and 100');
@@ -97,6 +101,7 @@ try {
             'end' => $endLabel,
             'endSec' => $endSec,
             'fadeIn' => $fadeIn,
+            'fadeOut' => $fadeOut,
             'volume' => $volume,
             'clip' => '',
         ];

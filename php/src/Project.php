@@ -64,6 +64,7 @@ public function assertCue(string $projectId, array $cue): void
             'end' => $cue['end'],
             'endSec' => $cue['endSec'],
             'fadeIn' => $cue['fadeIn'],
+            'fadeOut' => $cue['fadeOut'],
             'volume' => $cue['volume'],
             'clip' => $cue['clip'],
         ];
