@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>thePlay</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <header>
+    <strong>thePlay</strong>
+    <button type="button" id="open">Open</button>
+    <span id="file-name"></span>
+  </header>
+  <main>
+    <article id="doc">
+      <p class="empty">Open a .docx or .pdf. Select a sentence, attach a YouTube range, then press its key.</p>
+    </article>
+    <aside id="editor" hidden>
+      <p id="quote"></p>
+      <label>Key
+        <span class="row">
+          <button type="button" id="set-key">Set key</button>
+          <strong id="key-label">none</strong>
+        </span>
+      </label>
+      <label>YouTube URL
+        <input id="url" type="url" placeholder="https://www.youtube.com/watch?v=...">
+      </label>
+      <label>Start
+        <input id="start" inputmode="numeric" placeholder="1:08" autocomplete="off">
+      </label>
+      <label>End
+        <input id="end" inputmode="numeric" placeholder="1:43" autocomplete="off">
+      </label>
+      <label>Fade in (seconds)
+        <input id="fade" type="number" min="0" max="120" step="0.1" value="2">
+      </label>
+      <label>Volume
+        <input id="volume" type="number" min="0" max="100" step="1" value="100">
+      </label>
+      <div class="row">
+        <button type="button" id="save">Save</button>
+        <button type="button" id="remove" hidden>Remove</button>
+      </div>
+      <p id="status" role="status"></p>
+    </aside>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+    "name": "lexgur/theplay",
+    "description": "Desktop script soundboard",
+    "require": {
+        "php": ">=8.2",
+        "phpoffice/phpword": "^1.3",
+        "smalot/pdfparser": "^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "ThePlay\\": "php/src/"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    }
+}
