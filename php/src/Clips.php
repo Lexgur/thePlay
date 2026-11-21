@@ -98,6 +98,8 @@ final class Clips
         $this->ensureSourceDir();
         $this->run([
             $this->bin('yt-dlp'),
+            '--js-runtimes',
+            'node:' . $this->bin('node'),
             '-f',
             'bestaudio',
             '-x',
@@ -157,6 +159,7 @@ final class Clips
         $home = getenv('HOME') ?: '';
         $dirs = explode(PATH_SEPARATOR, getenv('PATH') ?: '');
         $dirs[] = $home . '/.local/bin';
+        $dirs[] = $home . '/.local/node/bin';
         $dirs[] = '/usr/local/bin';
         $dirs[] = '/usr/bin';
         foreach ($dirs as $dir) {
@@ -187,7 +190,13 @@ final class Clips
         if ($code !== 0) {
             $tail = trim(($stderr === false ? '' : $stderr) . "\n" . ($stdout === false ? '' : $stdout));
             $lines = preg_split("/\r\n|\n|\r/", $tail) ?: [];
-            $message = trim(implode("\n", array_slice($lines, -12)));
+            $errors = [];
+            foreach ($lines as $line) {
+                if (str_contains($line, 'ERROR:')) {
+                    $errors[] = trim($line);
+                }
+            }
+            $message = $errors !== [] ? implode("\n", $errors) : trim(implode("\n", array_slice($lines, -12)));
             throw new RuntimeException(basename((string) $command[0]) . ' failed' . ($message === '' ? '' : ': ' . $message));
         }
 
