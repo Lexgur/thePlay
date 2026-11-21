@@ -131,9 +131,12 @@ async function createWindow() {
     displayWindow.focus();
   });
   ipcMain.handle('fullscreen-display', () => {
-    if (displayWindow && !displayWindow.isDestroyed()) {
-      displayWindow.setFullScreen(true);
+    if (!displayWindow || displayWindow.isDestroyed()) {
+      return false;
     }
+    const next = !displayWindow.isFullScreen();
+    displayWindow.setFullScreen(next);
+    return next;
   });
   ipcMain.handle('list-screens', () => {
     return screen.getAllDisplays().map((display, index) => ({
@@ -153,6 +156,12 @@ async function createWindow() {
     displayWindow.setFullScreen(true);
   });
 
+  displayWindow.on('enter-full-screen', () => {
+    displayWindow.webContents.send('display-fullscreen', true);
+  });
+  displayWindow.on('leave-full-screen', () => {
+    displayWindow.webContents.send('display-fullscreen', false);
+  });
   scriptWindow.on('closed', () => {
     if (displayWindow && !displayWindow.isDestroyed()) {
       displayWindow.close();

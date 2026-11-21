@@ -32,11 +32,21 @@ function rememberIdle() {
 
 document.body.addEventListener('mousemove', rememberIdle);
 
-document.getElementById('full').addEventListener('click', () => {
+const full = document.getElementById('full');
+
+function setFullscreenLabel(on) {
+  full.textContent = on ? 'Windowed' : 'Fullscreen';
+}
+
+full.addEventListener('click', () => {
   if (window.thePlay) {
-    window.thePlay.fullscreen();
+    window.thePlay.fullscreen().then(setFullscreenLabel);
   }
 });
+
+if (window.thePlay && window.thePlay.onFullscreen) {
+  window.thePlay.onFullscreen(setFullscreenLabel);
+}
 
 const channel = new BroadcastChannel('theplay-visual');
 channel.onmessage = (event) => show(event.data);
