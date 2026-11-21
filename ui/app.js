@@ -21,6 +21,9 @@ const removeButton = document.getElementById('remove');
 const soundList = document.getElementById('sound-list');
 const status = document.getElementById('status');
 const fileName = document.getElementById('file-name');
+const scenes = document.getElementById('scenes');
+const slideTitle = document.getElementById('slide-title');
+let slideIndex = 0;
 
 document.getElementById('open').addEventListener('click', async () => {
   if (!window.thePlay) {
@@ -38,11 +41,15 @@ document.getElementById('open').addEventListener('click', async () => {
   }
   project = data;
   draft = null;
+  slideIndex = 0;
   editor.hidden = true;
   fileName.textContent = filePath.split(/[/\\]/).pop();
   setStatus('');
   render();
 });
+
+document.getElementById('prev').addEventListener('click', () => changeSlide(-1));
+document.getElementById('next').addEventListener('click', () => changeSlide(1));
 
 document.getElementById('set-key').addEventListener('click', () => {
   arming = true;
@@ -126,10 +133,20 @@ window.addEventListener('keydown', (event) => {
   if (event.repeat || event.metaKey || event.ctrlKey || event.altKey) {
     return;
   }
-  if (event.target.closest('input, textarea, select, button')) {
+  if (event.target.closest('input, textarea, select, #editor button')) {
     return;
   }
   if (!project) {
+    return;
+  }
+  if (event.key === 'PageDown') {
+    event.preventDefault();
+    changeSlide(1);
+    return;
+  }
+  if (event.key === 'PageUp') {
+    event.preventDefault();
+    changeSlide(-1);
     return;
   }
   const cue = project.cues.find((item) => item.key === event.key);
@@ -137,6 +154,7 @@ window.addEventListener('keydown', (event) => {
     return;
   }
   event.preventDefault();
+  showSlideForParagraph(cue.paragraphId);
   play(cue);
 });
 
@@ -279,12 +297,106 @@ async function removeCue() {
   render();
 }
 
+function plainTitle(text) {
+  return text.trim().replace(/^(?:\p{Extended_Pictographic}|\p{Regional_Indicator}{2})+\s*/u, '').trim();
+}
+
+function isScene(text, next, index, startAt) {
+  if (index < startAt) {
+    return false;
+  }
+  const trimmed = text.trim();
+  const plain = plainTitle(trimmed);
+  if (plain === 'PABAIGA') {
+    return true;
+  }
+  if (!/^(?:\p{Extended_Pictographic}|\p{Regional_Indicator}{2})/u.test(trimmed)) {
+    return false;
+  }
+  if (!plain || plain.length > 28 || plain !== plain.toLocaleUpperCase('lt') || /[().]/.test(plain)) {
+    return false;
+  }
+  if (next && next.trim().length > 70) {
+    return false;
+  }
+  return true;
+}
+
+function buildSlides(paragraphs) {
+  const startAt = paragraphs.findIndex((paragraph) => plainTitle(paragraph.text) === 'PRADŽIA');
+  const from = startAt === -1 ? 0 : startAt;
+  const slides = [];
+  let current = null;
+  paragraphs.forEach((paragraph, index) => {
+    const next = paragraphs[index + 1];
+    if (current === null || isScene(paragraph.text, next && next.text, index, from)) {
+      current = {
+        title: plainTitle(paragraph.text),
+        paragraphs: [],
+      };
+      slides.push(current);
+    }
+    current.paragraphs.push(paragraph);
+  });
+  return slides;
+}
+
+function changeSlide(delta) {
+  if (!project) {
+    return;
+  }
+  const count = buildSlides(project.paragraphs).length;
+  const next = Math.min(count - 1, Math.max(0, slideIndex + delta));
+  if (next === slideIndex) {
+    return;
+  }
+  slideIndex = next;
+  render();
+}
+
+function showSlideForParagraph(paragraphId) {
+  if (!project) {
+    return;
+  }
+  const index = buildSlides(project.paragraphs).findIndex((slide) => {
+    return slide.paragraphs.some((paragraph) => paragraph.id === paragraphId);
+  });
+  if (index >= 0 && index !== slideIndex) {
+    slideIndex = index;
+    render();
+  }
+}
+
 function render() {
   if (!project) {
     return;
   }
+  const slides = buildSlides(project.paragraphs);
+  if (slideIndex >= slides.length) {
+    slideIndex = slides.length - 1;
+  }
+  const slide = slides[slideIndex];
+  slideTitle.textContent = slide.title;
+  scenes.replaceChildren();
+  slides.forEach((item, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = item.title;
+    button.classList.toggle('active', index === slideIndex);
+    button.addEventListener('click', () => {
+      slideIndex = index;
+      render();
+    });
+    scenes.appendChild(button);
+  });
   doc.replaceChildren();
-  for (const paragraph of project.paragraphs) {
+  const heading = document.createElement('h1');
+  heading.textContent = slide.title;
+  doc.appendChild(heading);
+  const visible = slide.paragraphs.filter((paragraph, index) => {
+    return !(index === 0 && plainTitle(paragraph.text) === slide.title);
+  });
+  for (const paragraph of visible) {
     const element = document.createElement('p');
     element.dataset.id = paragraph.id;
     const cues = project.cues.filter((cue) => cue.paragraphId === paragraph.id);
