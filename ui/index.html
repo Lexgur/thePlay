@@ -5,73 +5,78 @@
   <title>thePlay</title>
   <link rel="stylesheet" href="/app.css">
 </head>
-<body>
-  <header>
-    <strong>thePlay</strong>
-    <button type="button" id="open">Open</button>
-    <button type="button" id="show-display">Display</button>
-    <span id="file-name"></span>
+<body class="bg-stone-50 font-serif text-xl leading-relaxed text-stone-900">
+  <header class="sticky top-0 z-30 flex items-center gap-3 bg-stone-900 px-5 py-3 font-sans text-stone-50">
+    <strong class="text-base tracking-tight">thePlay</strong>
+    <button type="button" id="open" class="rounded-md bg-white px-3 py-1.5 text-sm font-medium text-stone-900 hover:bg-stone-200">Open</button>
+    <button type="button" id="show-display" class="rounded-md border border-stone-600 px-3 py-1.5 text-sm hover:bg-stone-800">Display</button>
+    <span id="file-name" class="truncate text-sm text-stone-400"></span>
   </header>
-  <p id="status" role="status"></p>
-  <main>
-    <article id="doc">
-      <p class="empty">Open a .docx or .pdf. Select a sentence, attach a YouTube range, then press its key.</p>
+  <p id="status" role="status" class="empty:hidden bg-rose-50 px-5 py-2 font-sans text-sm text-rose-800"></p>
+  <main class="grid min-h-[calc(100vh-3.25rem)] grid-cols-1 lg:grid-cols-[minmax(0,1fr)_22rem]">
+    <article id="doc" class="max-w-3xl px-8 py-8 [&_p]:mb-4 [&_p]:whitespace-pre-wrap">
+      <p class="font-sans text-base text-stone-500">Open a .docx or .pdf. Select a sentence, attach a YouTube range, then press its key.</p>
     </article>
-    <aside id="editor" hidden>
-      <div id="sound-list" class="row"></div>
-      <p id="quote"></p>
-      <label>Key
-        <span class="row">
-          <button type="button" id="set-key">Set key</button>
-          <strong id="key-label">none</strong>
+    <aside id="editor" hidden class="sticky top-0 max-h-screen self-start overflow-auto border-t border-stone-200 bg-white p-4 font-sans text-sm text-stone-800 lg:border-t-0 lg:border-l">
+      <div id="sound-list" class="sticky top-0 z-10 -mx-4 -mt-4 mb-3 flex flex-wrap gap-2 border-b border-stone-200 bg-white px-4 py-3 empty:hidden"></div>
+      <p id="quote" class="mb-3 font-serif text-base text-stone-900"></p>
+      <label class="mb-3 block">Key
+        <span class="mt-1 flex items-center gap-2">
+          <button type="button" id="set-key" class="rounded-md border border-stone-300 px-3 py-1.5 hover:bg-stone-100">Set key</button>
+          <strong id="key-label" class="text-stone-900">none</strong>
         </span>
       </label>
-      <p id="group-note" class="hint"></p>
-      <label>YouTube URL
-        <input id="url" type="url" placeholder="https://www.youtube.com/watch?v=...">
+      <p id="group-note" class="mb-3 text-xs leading-snug text-stone-500"></p>
+      <label class="mb-3 block">YouTube URL
+        <input id="url" type="url" placeholder="https://www.youtube.com/watch?v=..." class="mt-1 block w-full rounded-md border border-stone-300 bg-white px-2.5 py-1.5 outline-none focus:border-stone-800">
       </label>
-      <label>Start
-        <input id="start" inputmode="numeric" placeholder="1:08" autocomplete="off">
+      <label class="mb-3 block">Start
+        <input id="start" inputmode="numeric" placeholder="1:08" autocomplete="off" class="mt-1 block w-full rounded-md border border-stone-300 bg-white px-2.5 py-1.5 outline-none focus:border-stone-800">
       </label>
-      <label>End
-        <input id="end" inputmode="numeric" placeholder="1:43" autocomplete="off">
+      <label class="mb-3 block">End
+        <input id="end" inputmode="numeric" placeholder="1:43" autocomplete="off" class="mt-1 block w-full rounded-md border border-stone-300 bg-white px-2.5 py-1.5 outline-none focus:border-stone-800">
       </label>
-      <label>Fade in (seconds)
-        <input id="fade" type="number" min="0" max="120" step="0.1" value="2">
+      <label class="mb-3 block">Fade in (seconds)
+        <input id="fade" type="number" min="0" max="120" step="0.1" value="2" class="mt-1 block w-full rounded-md border border-stone-300 bg-white px-2.5 py-1.5 outline-none focus:border-stone-800">
       </label>
-      <label>Fade out (seconds)
-        <input id="fade-out" type="number" min="0" max="120" step="0.1" value="2">
+      <label class="mb-3 block">Fade out (seconds)
+        <input id="fade-out" type="number" min="0" max="120" step="0.1" value="2" class="mt-1 block w-full rounded-md border border-stone-300 bg-white px-2.5 py-1.5 outline-none focus:border-stone-800">
       </label>
-      <label>Volume
-        <input id="volume" type="number" min="0" max="100" step="1" value="100">
+      <label class="mb-3 block">Volume
+        <input id="volume" type="number" min="0" max="100" step="1" value="100" class="mt-1 block w-full rounded-md border border-stone-300 bg-white px-2.5 py-1.5 outline-none focus:border-stone-800">
       </label>
-      <label>Group picture
-        <select id="visual-type">
+      <label class="mb-3 block">Group picture
+        <select id="visual-type" class="mt-1 block w-full rounded-md border border-stone-300 bg-white px-2.5 py-1.5 outline-none focus:border-stone-800">
           <option value="">Sound only</option>
           <option value="image">Image</option>
           <option value="video">YouTube video</option>
         </select>
       </label>
       <div id="visual-image" hidden>
-        <button type="button" id="pick-image">Choose image</button>
-        <span id="image-name"></span>
+        <button type="button" id="pick-image" class="rounded-md border border-stone-300 px-3 py-1.5 hover:bg-stone-100">Choose image</button>
+        <span id="image-name" class="ml-2 text-stone-500"></span>
       </div>
       <div id="visual-video" hidden>
-        <label>Video URL
-          <input id="visual-url" type="url" placeholder="https://www.youtube.com/watch?v=...">
+        <label class="mb-3 block">Video URL
+          <input id="visual-url" type="url" placeholder="https://www.youtube.com/watch?v=..." class="mt-1 block w-full rounded-md border border-stone-300 bg-white px-2.5 py-1.5 outline-none focus:border-stone-800">
         </label>
-        <label>From
-          <input id="visual-start" inputmode="numeric" placeholder="optional" autocomplete="off">
+        <label class="mb-3 block">From
+          <input id="visual-start" inputmode="numeric" placeholder="0:12" autocomplete="off" class="mt-1 block w-full rounded-md border border-stone-300 bg-white px-2.5 py-1.5 outline-none focus:border-stone-800">
         </label>
-        <label>To
-          <input id="visual-end" inputmode="numeric" placeholder="optional" autocomplete="off">
+        <label class="mb-3 block">To
+          <input id="visual-end" inputmode="numeric" placeholder="0:58" autocomplete="off" class="mt-1 block w-full rounded-md border border-stone-300 bg-white px-2.5 py-1.5 outline-none focus:border-stone-800">
         </label>
-        <p class="hint">Leave both empty to loop until the next group.</p>
+        <label class="mb-3 flex cursor-pointer items-center gap-3">
+          <input id="visual-loop" type="checkbox" class="peer sr-only" checked>
+          <span class="relative h-6 w-11 shrink-0 rounded-full bg-stone-300 transition-colors peer-checked:bg-stone-900 peer-focus-visible:ring-2 peer-focus-visible:ring-stone-900 peer-focus-visible:ring-offset-2 after:absolute after:left-0.5 after:top-0.5 after:size-5 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5"></span>
+          Loop
+        </label>
+        <p class="mb-3 text-xs leading-snug text-stone-500">Repeats that part until another group shows a picture or video. Leave From and To empty for the whole video.</p>
       </div>
-      <div class="row">
-        <button type="button" id="save">Save</button>
-        <button type="button" id="add" hidden>Add another</button>
-        <button type="button" id="remove" hidden>Remove</button>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" id="save" class="rounded-md bg-stone-900 px-3 py-1.5 text-white hover:bg-stone-700">Save</button>
+        <button type="button" id="add" hidden class="rounded-md border border-stone-300 px-3 py-1.5 hover:bg-stone-100">Add another</button>
+        <button type="button" id="remove" hidden class="rounded-md border border-rose-200 px-3 py-1.5 text-rose-800 hover:bg-rose-50">Remove</button>
       </div>
     </aside>
   </main>

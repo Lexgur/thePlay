@@ -88,22 +88,22 @@ final class Clips
         return $name;
     }
 
-    public function ensureVideo(string $youtubeUrl, ?int $start, ?int $end): array
+    public function ensureVideo(string $youtubeUrl, ?int $start, ?int $end): string
     {
         $videoId = self::videoId($youtubeUrl);
-        $loop = $start === null || $end === null;
-        if (!$loop) {
+        $ranged = $start !== null && $end !== null;
+        if ($ranged) {
             Time::assertRange((int) $start, (int) $end);
         }
         $source = $this->videoSource($videoId);
-        if ($loop) {
-            return ['file' => $videoId . '_full.mp4', 'loop' => true];
+        if (!$ranged) {
+            return $videoId . '_full.mp4';
         }
 
         $name = $videoId . '_' . $start . '_' . $end . '.mp4';
         $destination = $this->dir . '/visuals/' . $name;
         if (is_file($destination) && filesize($destination) > 1000) {
-            return ['file' => $name, 'loop' => false];
+            return $name;
         }
         $duration = $this->duration($source);
         if ($start >= $duration) {
@@ -130,7 +130,7 @@ final class Clips
             throw new RuntimeException('Could not cut that video');
         }
 
-        return ['file' => $name, 'loop' => false];
+        return $name;
     }
 
     private function videoSource(string $videoId): string

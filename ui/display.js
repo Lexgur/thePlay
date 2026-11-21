@@ -25,9 +25,9 @@ function show(visual) {
 }
 
 function rememberIdle() {
-  document.body.classList.remove('idle');
+  controls.classList.remove('pointer-events-none', 'opacity-0');
   clearTimeout(idleTimer);
-  idleTimer = setTimeout(() => document.body.classList.add('idle'), 2500);
+  idleTimer = setTimeout(() => controls.classList.add('pointer-events-none', 'opacity-0'), 2500);
 }
 
 document.body.addEventListener('mousemove', rememberIdle);
@@ -65,6 +65,7 @@ if (window.thePlay) {
     for (const screen of list) {
       const button = document.createElement('button');
       button.type = 'button';
+      button.className = 'rounded-md bg-white px-2.5 py-1.5 text-sm font-medium text-stone-900 hover:bg-stone-200';
       button.textContent = screen.label;
       button.addEventListener('click', () => window.thePlay.sendToScreen(screen.id));
       screens.appendChild(button);

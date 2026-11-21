@@ -221,16 +221,15 @@ function visualFor(array $body, string $dataDir, string $key): array
     $end = null;
     if ($startLabel !== '' || $endLabel !== '') {
         if ($startLabel === '' || $endLabel === '') {
-            throw new InvalidArgumentException('Set both video times, or leave both empty to loop');
+            throw new InvalidArgumentException('Set both video times, or leave both empty for the whole video');
         }
         $start = Time::seconds($startLabel);
         $end = Time::seconds($endLabel);
         Time::assertRange($start, $end);
     }
-    $video = (new Clips($dataDir))->ensureVideo($url, $start, $end);
     $group['visualType'] = 'video';
-    $group['visualFile'] = $video['file'];
-    $group['visualLoop'] = $video['loop'];
+    $group['visualFile'] = (new Clips($dataDir))->ensureVideo($url, $start, $end);
+    $group['visualLoop'] = filter_var($body['visualLoop'] ?? false, FILTER_VALIDATE_BOOLEAN);
     $group['visualUrl'] = $url;
     $group['visualStart'] = $startLabel;
     $group['visualEnd'] = $endLabel;

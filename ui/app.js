@@ -28,6 +28,7 @@ const visualVideo = document.getElementById('visual-video');
 const visualUrl = document.getElementById('visual-url');
 const visualStart = document.getElementById('visual-start');
 const visualEnd = document.getElementById('visual-end');
+const visualLoop = document.getElementById('visual-loop');
 const imageName = document.getElementById('image-name');
 const visualChannel = new BroadcastChannel('theplay-visual');
 
@@ -219,6 +220,7 @@ function fillGroup() {
   visualUrl.value = group ? (group.visualUrl || '') : '';
   visualStart.value = group ? (group.visualStart || '') : '';
   visualEnd.value = group ? (group.visualEnd || '') : '';
+  visualLoop.checked = group && group.visualType === 'video' ? !!group.visualLoop : true;
   draft.visualFile = group ? (group.visualFile || '') : '';
   imageName.textContent = visualType.value === 'image' && draft.visualFile ? 'Saved image' : '';
   const count = project.cues.filter((cue) => cue.key && cue.key === draft.key).length;
@@ -253,6 +255,7 @@ function renderSoundList() {
   for (const cue of sounds) {
     const button = document.createElement('button');
     button.type = 'button';
+    button.className = 'rounded-md border border-stone-300 px-2 py-1 disabled:border-stone-900 disabled:bg-stone-900 disabled:text-white';
     button.textContent = labelFor(cue.key);
     if (draft && cue.id === draft.id) {
       button.disabled = true;
@@ -315,6 +318,7 @@ async function saveCue() {
     visualUrl: visualUrl.value.trim(),
     visualStart: visualStart.value.trim(),
     visualEnd: visualEnd.value.trim(),
+    visualLoop: visualLoop.checked,
   });
   saveButton.disabled = false;
   if (!data) {
@@ -379,6 +383,7 @@ function render() {
       const mark = document.createElement('mark');
       mark.dataset.ids = covering.map((cue) => cue.id).join(',');
       mark.dataset.key = covering.map((cue) => labelFor(cue.key)).join(' ');
+      mark.className = 'rounded-sm bg-amber-200 after:ml-1 after:rounded after:bg-stone-900 after:px-1.5 after:align-super after:font-sans after:text-xs after:leading-tight after:text-white after:content-[attr(data-key)]';
       mark.textContent = text;
       element.appendChild(mark);
     }
