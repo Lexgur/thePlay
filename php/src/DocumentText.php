@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace ThePlay;
 
+use DOMDocument;
+use DOMNode;
+use DOMXPath;
 use InvalidArgumentException;
-use PhpOffice\PhpWord\IOFactory;
 use Smalot\PdfParser\Parser;
+use ZipArchive;
 
 final class DocumentText
 {
@@ -40,14 +43,57 @@ final class DocumentText
 
     private static function docx(string $path): array
     {
+        $zip = new ZipArchive();
+        if ($zip->open($path) !== true) {
+            throw new InvalidArgumentException('That .docx could not be opened');
+        }
+        $xml = $zip->getFromName('word/document.xml');
+        $zip->close();
+        if (!is_string($xml) || $xml === '') {
+            throw new InvalidArgumentException('That .docx has no text');
+        }
+
+        $dom = new DOMDocument();
+        $errors = libxml_use_internal_errors(true);
+        $loaded = $dom->loadXML($xml, LIBXML_NONET);
+        libxml_clear_errors();
+        libxml_use_internal_errors($errors);
+        if ($loaded !== true) {
+            throw new InvalidArgumentException('That .docx could not be read');
+        }
+
+        $xpath = new DOMXPath($dom);
+        $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
         $blocks = [];
-        foreach (IOFactory::load($path)->getSections() as $section) {
-            foreach ($section->getElements() as $element) {
-                self::appendBlocks($element, $blocks);
-            }
+        $paragraphs = $xpath->query('/w:document/w:body//w:p');
+        if ($paragraphs === false) {
+            return [];
+        }
+        foreach ($paragraphs as $paragraph) {
+            $blocks[] = self::docxParagraph($xpath, $paragraph);
         }
 
         return $blocks;
+    }
+
+    private static function docxParagraph(DOMXPath $xpath, DOMNode $paragraph): string
+    {
+        $parts = $xpath->query('.//w:t|.//w:tab|.//w:br', $paragraph);
+        if ($parts === false) {
+            return '';
+        }
+        $text = '';
+        foreach ($parts as $part) {
+            if ($part->localName === 't') {
+                $text .= $part->textContent;
+            } elseif ($part->localName === 'tab') {
+                $text .= "\t";
+            } else {
+                $text .= "\n";
+            }
+        }
+
+        return $text;
     }
 
     private static function pdf(string $path): array
@@ -64,69 +110,5 @@ final class DocumentText
         }
 
         return $paragraphs;
-    }
-
-    private static function appendBlocks(object $element, array &$blocks): void
-    {
-        if (method_exists($element, 'getRows')) {
-            foreach ($element->getRows() as $row) {
-                foreach ($row->getCells() as $cell) {
-                    foreach ($cell->getElements() as $child) {
-                        if (is_object($child)) {
-                            self::appendBlocks($child, $blocks);
-                        }
-                    }
-                }
-            }
-
-            return;
-        }
-
-        $text = trim(self::inlineText($element));
-        if ($text !== '') {
-            $blocks[] = $text;
-        }
-    }
-
-    private static function inlineText(object $element): string
-    {
-        $name = (new \ReflectionClass($element))->getShortName();
-        if ($name === 'TextBreak') {
-            return "\n";
-        }
-        if (!method_exists($element, 'getElements')) {
-            return self::leafText($element);
-        }
-
-        $text = '';
-        foreach ($element->getElements() as $child) {
-            if (is_object($child)) {
-                $text .= self::inlineText($child);
-            }
-        }
-
-        return $text;
-    }
-
-    private static function leafText(object $element): string
-    {
-        if (!method_exists($element, 'getText')) {
-            return '';
-        }
-        $text = $element->getText();
-        if (is_string($text)) {
-            return $text;
-        }
-        if (!is_array($text)) {
-            return '';
-        }
-        $joined = '';
-        foreach ($text as $part) {
-            if (is_string($part)) {
-                $joined .= $part;
-            }
-        }
-
-        return $joined;
     }
 }

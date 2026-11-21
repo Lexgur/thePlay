@@ -1,0 +1,4 @@
+#!/bin/sh
+cd "$(dirname "$0")/.."
+export PATH="$HOME/.local/node/bin:$HOME/.local/bin:$PATH"
+exec npm start

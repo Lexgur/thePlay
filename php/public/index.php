@@ -83,9 +83,8 @@ try {
         Time::assertRange($startSec, $endSec);
         $youtubeUrl = trim((string) ($body['youtubeUrl'] ?? ''));
         $videoId = Clips::videoId($youtubeUrl);
-        $clip = (new Clips($dataDir))->ensure($youtubeUrl, $startSec, $endSec);
-
-        $project = (new Project($dataDir))->saveCue($projectId, [
+        $projectStore = new Project($dataDir);
+        $cue = [
             'id' => $cueId,
             'paragraphId' => (string) ($body['paragraphId'] ?? ''),
             'startOffset' => (int) ($body['startOffset'] ?? -1),
@@ -99,9 +98,11 @@ try {
             'endSec' => $endSec,
             'fadeIn' => $fadeIn,
             'volume' => $volume,
-            'clip' => $clip,
-        ]);
-        respond($project);
+            'clip' => '',
+        ];
+        $projectStore->assertCue($projectId, $cue);
+        $cue['clip'] = (new Clips($dataDir))->ensure($youtubeUrl, $startSec, $endSec);
+        respond($projectStore->saveCue($projectId, $cue));
 
         return;
     }

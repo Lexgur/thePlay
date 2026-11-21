@@ -43,42 +43,14 @@ final class Project
         return $data;
     }
 
+public function assertCue(string $projectId, array $cue): void
+    {
+        $this->checked($projectId, $cue);
+    }
+
     public function saveCue(string $projectId, array $cue): array
     {
-        $data = $this->requireProject($projectId);
-        $paragraph = null;
-        foreach ($data['paragraphs'] as $item) {
-            if ($item['id'] === $cue['paragraphId']) {
-                $paragraph = $item;
-                break;
-            }
-        }
-        if ($paragraph === null) {
-            throw new InvalidArgumentException('That paragraph is not in this script');
-        }
-
-        $length = mb_strlen($paragraph['text'], 'UTF-8');
-        $start = $cue['startOffset'];
-        $end = $cue['endOffset'];
-        if ($start < 0 || $end > $length || $start >= $end) {
-            throw new InvalidArgumentException('Select some text in one paragraph');
-        }
-
-        foreach ($data['cues'] as $existing) {
-            if ($existing['id'] === $cue['id']) {
-                continue;
-            }
-            if ($existing['key'] === $cue['key']) {
-                throw new InvalidArgumentException('That key is already used');
-            }
-            if ($existing['paragraphId'] !== $cue['paragraphId']) {
-                continue;
-            }
-            if ($start < $existing['endOffset'] && $existing['startOffset'] < $end) {
-                throw new InvalidArgumentException('That text already has a sound');
-            }
-        }
-
+        [$data, $start, $end] = $this->checked($projectId, $cue);
         $stored = [
             'id' => $cue['id'],
             'paragraphId' => $cue['paragraphId'],
@@ -125,6 +97,45 @@ final class Project
         $this->write($data);
 
         return $data;
+    }
+
+    private function checked(string $projectId, array $cue): array
+    {
+        $data = $this->requireProject($projectId);
+        $paragraph = null;
+        foreach ($data['paragraphs'] as $item) {
+            if ($item['id'] === $cue['paragraphId']) {
+                $paragraph = $item;
+                break;
+            }
+        }
+        if ($paragraph === null) {
+            throw new InvalidArgumentException('That paragraph is not in this script');
+        }
+
+        $start = $cue['startOffset'];
+        $end = $cue['endOffset'];
+        $length = mb_strlen($paragraph['text'], 'UTF-8');
+        if ($start < 0 || $end > $length || $start >= $end) {
+            throw new InvalidArgumentException('Select some text in one paragraph');
+        }
+
+        foreach ($data['cues'] as $existing) {
+            if ($existing['id'] === $cue['id']) {
+                continue;
+            }
+            if ($existing['key'] === $cue['key']) {
+                throw new InvalidArgumentException('That key is already used');
+            }
+            if ($existing['paragraphId'] !== $cue['paragraphId']) {
+                continue;
+            }
+            if ($start < $existing['endOffset'] && $existing['startOffset'] < $end) {
+                throw new InvalidArgumentException('That text already has a sound');
+            }
+        }
+
+        return [$data, $start, $end];
     }
 
     private function requireProject(string $projectId): array
