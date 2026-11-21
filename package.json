@@ -18,6 +18,7 @@
   "build": {
     "appId": "com.lexgur.theplay",
     "productName": "thePlay",
+    "afterPack": "build/afterPack.js",
     "files": [
       "electron/**/*",
       "package.json"

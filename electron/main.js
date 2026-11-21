@@ -10,6 +10,7 @@ app.commandLine.appendSwitch('no-sandbox');
 
 const root = app.isPackaged ? process.resourcesPath : path.resolve(__dirname, '..');
 let php = null;
+let phpLog = '';
 let scriptWindow = null;
 let displayWindow = null;
 
@@ -39,16 +40,38 @@ function waitForServer(port) {
     let attempts = 0;
     const tick = () => {
       const request = http.get({ host: '127.0.0.1', port, path: '/' }, (response) => {
-        response.resume();
-        resolve();
+        response.on('data', () => {});
+        response.on('end', () => resolve());
       });
       request.on('error', () => {
         attempts += 1;
         if (attempts > 50) {
-          reject(new Error('PHP did not start'));
+          reject(new Error(startupError('PHP did not start')));
           return;
         }
         setTimeout(tick, 100);
+      });
+    };
+    tick();
+  });
+}
+
+function startupError(message) {
+  const detail = phpLog.trim().split('\n').slice(-8).join('\n');
+  return detail ? message + '\n' + detail : message;
+}
+
+function loadPage(window, url) {
+  return new Promise((resolve, reject) => {
+    let attempts = 0;
+    const tick = () => {
+      window.loadURL(url).then(resolve).catch(() => {
+        attempts += 1;
+        if (attempts > 25) {
+          reject(new Error(startupError('Could not open http://127.0.0.1')));
+          return;
+        }
+        setTimeout(tick, 200);
       });
     };
     tick();
@@ -74,8 +97,14 @@ async function createWindow() {
       PATH: `${home}/.local/bin:${home}/.local/node/bin:${process.env.PATH || ''}`,
     },
   });
+  php.on('error', (error) => {
+    phpLog += error.message + '\n';
+  });
   php.stdout.on('data', (chunk) => process.stdout.write(chunk));
-  php.stderr.on('data', (chunk) => process.stderr.write(chunk));
+  php.stderr.on('data', (chunk) => {
+    phpLog += chunk.toString();
+    process.stderr.write(chunk);
+  });
 
   try {
     await waitForServer(port);
@@ -169,8 +198,8 @@ async function createWindow() {
     }
   });
   scriptWindow.once('ready-to-show', () => scriptWindow.show());
-  await scriptWindow.loadURL(`http://127.0.0.1:${port}/`);
-  await displayWindow.loadURL(`http://127.0.0.1:${port}/display`);
+  await loadPage(scriptWindow, `http://127.0.0.1:${port}/`);
+  await loadPage(displayWindow, `http://127.0.0.1:${port}/display`);
 }
 
 app.whenReady().then(createWindow).catch((error) => {
