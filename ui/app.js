@@ -444,38 +444,47 @@ async function play(cue) {
     gain.gain.linearRampToValueAtTime(0, now + duration);
   }
   source.start(now);
-  source.stop(now + buffer.duration);
-  active.set(cue.id, source);
+  active.set(cue.id, { source, gain });
   source.onended = () => {
-    if (active.get(cue.id) === source) {
+    const current = active.get(cue.id);
+    if (current && current.source === source) {
       active.delete(cue.id);
     }
   };
 }
 
 function stopSounds() {
-  for (const source of active.values()) {
+  if (!audioCtx) {
+    return;
+  }
+  const now = audioCtx.currentTime;
+  for (const item of active.values()) {
+    const level = item.gain.gain;
+    level.cancelScheduledValues(now);
+    level.setValueAtTime(level.value, now);
+    level.linearRampToValueAtTime(0, now + 2);
     try {
-      source.stop();
+      item.source.stop(now + 2);
     } catch (error) {
-      /* already stopped */
+      /* stop was already set */
     }
   }
-  active.clear();
-  setStatus('Sounds stopped.');
+  setStatus('Fading out.');
 }
 
 function playGroup(cues) {
   for (const cue of cues) {
     const previous = active.get(cue.id);
-    if (previous) {
-      try {
-        previous.stop();
-      } catch (error) {
-        /* already stopped */
-      }
-      active.delete(cue.id);
+    if (!previous) {
+      continue;
     }
+    previous.gain.disconnect();
+    try {
+      previous.source.stop();
+    } catch (error) {
+      /* already stopped */
+    }
+    active.delete(cue.id);
   }
   for (const cue of cues) {
     play(cue);
