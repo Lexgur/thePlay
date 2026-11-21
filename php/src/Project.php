@@ -115,7 +115,8 @@ public function assertCue(string $projectId, array $cue): void
 
         $start = $cue['startOffset'];
         $end = $cue['endOffset'];
-        $length = mb_strlen($paragraph['text'], 'UTF-8');
+        // Offsets are JavaScript UTF-16 indexes so emoji in the script line up.
+        $length = self::utf16Length($paragraph['text']);
         if ($start < 0 || $end > $length || $start >= $end) {
             throw new InvalidArgumentException('Select some text in one paragraph');
         }
@@ -176,6 +177,19 @@ public function assertCue(string $projectId, array $cue): void
     private function file(string $id): string
     {
         return $this->dir . '/projects/' . $id . '.json';
+    }
+
+    private static function utf16Length(string $text): int
+    {
+        if ($text === '') {
+            return 0;
+        }
+        $utf16 = iconv('UTF-8', 'UTF-16LE', $text);
+        if ($utf16 === false) {
+            throw new InvalidArgumentException('Select some text in one paragraph');
+        }
+
+        return intdiv(strlen($utf16), 2);
     }
 
     private static function ensureDir(string $dir): void
